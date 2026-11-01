@@ -1,0 +1,89 @@
+name: Manual Source Security Audit
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: manual-source-audit-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  source-audit:
+    name: Static source and dependency inventory (no build)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Fetch repository source without third-party actions
+        shell: bash
+        env:
+          REPOSITORY: ${{ github.repository }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          git -c protocol.file.allow=never clone --depth 1 --no-recurse-submodules --branch "$REF_NAME" "https://github.com/$REPOSITORY.git" source
+          cd source
+          git submodule status || true
+          printf '\nTop-level files:\n'
+          find . -maxdepth 2 -type f -not -path './.git/*' | sort | head -n 250
+
+      - name: Inventory dependencies and inspect source patterns
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd source
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          root = Path(".")
+          manifests = [
+              "vcpkg.json", "vcpkg-configuration.json", "CMakeLists.txt",
+              "CMakePresets.json", ".gitmodules", "requirements.txt",
+              "pyproject.toml", "package.json"
+          ]
+          print("=== Dependency/configuration files ===")
+          for name in manifests:
+              p = root / name
+              if p.is_file():
+                  print(f"\\n--- {name} ---")
+                  print(p.read_text(errors="replace")[:12000])
+
+          print("\\n=== Heuristic review: potentially sensitive patterns ===")
+          patterns = {
+              "download-and-execute": re.compile(r"(Invoke-WebRequest|curl\\s+[^|]+\\|\\s*(sh|bash)|wget\\s+[^|]+\\|\\s*(sh|bash)|Start-Process)", re.I),
+              "encoded-or-obfuscated-powershell": re.compile(r"(EncodedCommand|FromBase64String|IEX\\s*\\()", re.I),
+              "credential-access": re.compile(r"(credential\\s*manager|\\.ssh/|id_rsa|secrets\\.|GITHUB_TOKEN)", re.I),
+              "network-or-shell-launch": re.compile(r"(subprocess\\.(Popen|run)|os\\.system\\(|CreateProcess|WinExec)", re.I),
+          }
+          excluded = {".git"}
+          extensions = {".py", ".ps1", ".bat", ".cmd", ".sh", ".yml", ".yaml", ".cmake", ".txt", ".json", ".cpp", ".c", ".h", ".hpp"}
+          count = 0
+          for p in root.rglob("*"):
+              if not p.is_file() or any(part in excluded for part in p.parts) or p.suffix.lower() not in extensions:
+                  continue
+              try:
+                  lines = p.read_text(errors="replace").splitlines()
+              except OSError:
+                  continue
+              for n, line in enumerate(lines, 1):
+                  for label, regex in patterns.items():
+                      if regex.search(line):
+                          print(f"{label}: {p}:{n}: {line.strip()[:240]}")
+                          count += 1
+                          if count >= 300:
+                              print("Finding output capped at 300 matches.")
+                              raise SystemExit(0)
+          if count == 0:
+              print("No matches for the limited heuristic patterns. This is not proof that the source is safe.")
+          else:
+              print(f"Total heuristic matches: {count}")
+          PY
+
+      - name: Report audit limitation
+        run: |
+          echo "This workflow performs static inventory only. It does not build, install, or execute project code."
+          echo "Heuristic matches require human review and may be false positives."
+          echo "A clean result is not a malware-free guarantee."

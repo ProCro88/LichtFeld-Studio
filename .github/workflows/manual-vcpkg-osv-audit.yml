@@ -111,6 +111,5 @@ jobs:
           path: |
             osv-vcpkg-lockfile.json
             osv-vcpkg-results.json
-            native-vcpkg-sbom/
           if-no-files-found: warn
           retention-days: 14

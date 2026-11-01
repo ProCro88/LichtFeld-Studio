@@ -18,7 +18,7 @@ jobs:
     permissions:
       contents: read
     steps:
-      - name: Request SBOM generation and fetch report
+      - name: Request repository SBOM
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
@@ -26,33 +26,26 @@ jobs:
         run: |
           set -euo pipefail
           api="https://api.github.com/repos/$REPOSITORY/dependency-graph/sbom"
-          headers=(-H "Accept: application/vnd.github+json" -H "Authorization: Bearer $GH_TOKEN" -H "X-GitHub-Api-Version: 2026-03-10")
-          curl --fail --silent --show-error "${api}/generate-report" "${headers[@]}" -o request.json
-          report_url="$(python3 -c 'import json; print(json.load(open("request.json"))["sbom_url"])')"
-          for attempt in $(seq 1 60); do
-            code="$(curl --silent --show-error -L -w '%{http_code}' -o sbom-response.json "${headers[@]}" "$report_url")"
-            if [ "$code" = "200" ]; then
-              python3 - <<'PY'
+          code="$(curl --silent --show-error -L -w '%{http_code}' -o sbom-response.json \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "$api")"
+          if [ "$code" != "200" ]; then
+            echo "GitHub SBOM API returned HTTP $code"
+            cat sbom-response.json
+            exit 1
+          fi
+          python3 - <<'PY'
           import json
           data = json.load(open("sbom-response.json", encoding="utf-8"))
           sbom = data.get("sbom", data)
-          if sbom.get("spdxVersion") is None or not isinstance(sbom.get("packages"), list):
-              raise SystemExit("Downloaded report is not a recognizable SPDX SBOM")
+          if not isinstance(sbom, dict) or not sbom.get("SPDXID") or not isinstance(sbom.get("packages"), list):
+              raise SystemExit("Response is not a recognizable SPDX SBOM")
           with open("lichtfeld-dependencies.spdx.json", "w", encoding="utf-8") as f:
               json.dump(sbom, f, indent=2)
           print("SPDX SBOM created. Package entries:", len(sbom["packages"]))
           PY
-              exit 0
-            fi
-            if [ "$code" != "202" ]; then
-              echo "Unexpected SBOM API response: HTTP $code"
-              cat sbom-response.json
-              exit 1
-            fi
-            sleep 5
-          done
-          echo "Timed out waiting for GitHub SBOM generation."
-          exit 1
 
       - name: Upload SPDX SBOM artifact
         uses: actions/upload-artifact@v4

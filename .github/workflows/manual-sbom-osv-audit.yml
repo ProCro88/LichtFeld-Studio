@@ -1,0 +1,77 @@
+name: Manual SBOM and Dependency Vulnerability Scan
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sbom-osv-audit-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  github-sbom:
+    name: Export GitHub dependency graph SBOM
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - name: Request SBOM generation and fetch report
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          api="https://api.github.com/repos/$REPOSITORY/dependency-graph/sbom"
+          headers=(-H "Accept: application/vnd.github+json" -H "Authorization: Bearer $GH_TOKEN" -H "X-GitHub-Api-Version: 2026-03-10")
+          curl --fail --silent --show-error -X POST "${api}/generate-report" "${headers[@]}" -o request.json
+          report_url="$(python3 -c 'import json; print(json.load(open("request.json"))["sbom_url"])')"
+          for attempt in $(seq 1 60); do
+            code="$(curl --silent --show-error -L -w '%{http_code}' -o sbom-response.json "${headers[@]}" "$report_url")"
+            if [ "$code" = "200" ]; then
+              python3 - <<'PY'
+          import json
+          data = json.load(open("sbom-response.json", encoding="utf-8"))
+          sbom = data.get("sbom", data)
+          if sbom.get("spdxVersion") is None or not isinstance(sbom.get("packages"), list):
+              raise SystemExit("Downloaded report is not a recognizable SPDX SBOM")
+          with open("lichtfeld-dependencies.spdx.json", "w", encoding="utf-8") as f:
+              json.dump(sbom, f, indent=2)
+          print("SPDX SBOM created. Package entries:", len(sbom["packages"]))
+          PY
+              exit 0
+            fi
+            if [ "$code" != "202" ]; then
+              echo "Unexpected SBOM API response: HTTP $code"
+              cat sbom-response.json
+              exit 1
+            fi
+            sleep 5
+          done
+          echo "Timed out waiting for GitHub SBOM generation."
+          exit 1
+
+      - name: Upload SPDX SBOM artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: lichtfeld-dependency-sbom
+          path: lichtfeld-dependencies.spdx.json
+          if-no-files-found: error
+          retention-days: 7
+
+  osv-scan:
+    name: OSV known-vulnerability scan
+    uses: google/osv-scanner-action/.github/workflows/osv-scanner-reusable.yml@v2.6.0
+    permissions:
+      contents: read
+      actions: read
+      security-events: write
+    with:
+      scan-args: |-
+        --recursive
+        ./
+      upload-sarif: true
+      fail-on-vuln: false

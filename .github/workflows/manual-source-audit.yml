@@ -7,7 +7,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: manual-source-audit-${{ github.ref }}
+  group: manual-source-audit-\${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -19,8 +19,8 @@ jobs:
       - name: Fetch repository source without third-party actions
         shell: bash
         env:
-          REPOSITORY: ${{ github.repository }}
-          REF_NAME: ${{ github.ref_name }}
+          REPOSITORY: \${{ github.repository }}
+          REF_NAME: \${{ github.ref_name }}
         run: |
           set -euo pipefail
           git -c protocol.file.allow=never clone --depth 1 --no-recurse-submodules --branch "$REF_NAME" "https://github.com/$REPOSITORY.git" source
@@ -48,15 +48,15 @@ jobs:
           for name in manifests:
               p = root / name
               if p.is_file():
-                  print(f"\\n--- {name} ---")
+                  print(f"\n--- {name} ---")
                   print(p.read_text(errors="replace")[:12000])
 
-          print("\\n=== Heuristic review: potentially sensitive patterns ===")
+          print("\n=== Heuristic review: potentially sensitive patterns ===")
           patterns = {
-              "download-and-execute": re.compile(r"(Invoke-WebRequest|curl\\s+[^|]+\\|\\s*(sh|bash)|wget\\s+[^|]+\\|\\s*(sh|bash)|Start-Process)", re.I),
-              "encoded-or-obfuscated-powershell": re.compile(r"(EncodedCommand|FromBase64String|IEX\\s*\\()", re.I),
-              "credential-access": re.compile(r"(credential\\s*manager|\\.ssh/|id_rsa|secrets\\.|GITHUB_TOKEN)", re.I),
-              "network-or-shell-launch": re.compile(r"(subprocess\\.(Popen|run)|os\\.system\\(|CreateProcess|WinExec)", re.I),
+              "download-and-execute": re.compile(r"(Invoke-WebRequest|curl\s+[^|]+\|\s*(sh|bash)|wget\s+[^|]+\|\s*(sh|bash)|Start-Process)", re.I),
+              "encoded-or-obfuscated-powershell": re.compile(r"(EncodedCommand|FromBase64String|IEX\s*\()", re.I),
+              "credential-access": re.compile(r"(credential\s*manager|\.ssh/|id_rsa|secrets\.|GITHUB_TOKEN)", re.I),
+              "network-or-shell-launch": re.compile(r"(subprocess\.(Popen|run)|os\.system\(|CreateProcess|WinExec)", re.I),
           }
           excluded = {".git"}
           extensions = {".py", ".ps1", ".bat", ".cmd", ".sh", ".yml", ".yaml", ".cmake", ".txt", ".json", ".cpp", ".c", ".h", ".hpp"}

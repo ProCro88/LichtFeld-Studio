@@ -7,7 +7,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: manual-source-audit-\${{ github.ref }}
+  group: manual-source-audit-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -19,8 +19,8 @@ jobs:
       - name: Fetch repository source without third-party actions
         shell: bash
         env:
-          REPOSITORY: \${{ github.repository }}
-          REF_NAME: \${{ github.ref_name }}
+          REPOSITORY: ${{ github.repository }}
+          REF_NAME: ${{ github.ref_name }}
         run: |
           set -euo pipefail
           git -c protocol.file.allow=never clone --depth 1 --no-recurse-submodules --branch "$REF_NAME" "https://github.com/$REPOSITORY.git" source

@@ -79,16 +79,6 @@ jobs:
           $custom | ConvertTo-Json -Depth 10 | Set-Content -Path osv-vcpkg-lockfile.json -Encoding utf8
           Write-Host "Exported $($packages.Count) resolved vcpkg packages for OSV scanning."
 
-          $sbomFiles = @(Get-ChildItem "$env:GITHUB_WORKSPACE\vcpkg_installed\x64-windows\share" -Recurse -Filter 'vcpkg.spdx.json' -ErrorAction SilentlyContinue)
-          if ($sbomFiles.Count -eq 0) {
-            throw "vcpkg did not produce per-package SPDX SBOM files"
-          }
-          New-Item -ItemType Directory -Force -Path native-vcpkg-sbom | Out-Null
-          $sbomFiles | ForEach-Object {
-            $destination = Join-Path "$env:GITHUB_WORKSPACE\native-vcpkg-sbom" (Split-Path $_.DirectoryName -Leaf)
-            Copy-Item $_.FullName $destination -Force
-          }
-          Write-Host "Collected $($sbomFiles.Count) per-package vcpkg SPDX SBOM files."
 
       - name: Install pinned OSV Scanner
         uses: actions/setup-go@v6

@@ -6478,6 +6478,8 @@ namespace lfs::training {
                 DensificationType densification_type = DensificationType::None;
                 if (!in_popspa && step_params.strategy == "mcmc")
                     densification_type = DensificationType::MCMC;
+                else if (!in_popspa && step_params.strategy == "abs-gs")
+                    densification_type = DensificationType::AbsGS;
                 else if (!in_popspa && core::param::is_mrnf_strategy(step_params.strategy))
                     densification_type = DensificationType::MRNF;
                 const bool update_gaussians_this_iter = !freeze_gaussians_this_iter;

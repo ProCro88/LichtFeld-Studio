@@ -551,7 +551,7 @@ namespace lfs::core::param {
             .all_strategies()
             .string_prop(&OptimizationParameters::strategy,
                          "strategy", "Strategy", d.strategy,
-                         "Optimization strategy: mcmc, mrnf, or igs+")
+                         "Optimization strategy: mcmc, abs-gs (experimental), mrnf, or igs+")
             .flags(PROP_NEEDS_RESTART)
 
             // Shared densification parameters

@@ -42,6 +42,22 @@ LichtFeld Studio lets you train new scenes from COLMAP datasets, resume checkpoi
 
 </div>
 
+
+> [!NOTE]
+> **Custom Windows portable build — maintained by ProCro88**
+>
+> This repository is a community-maintained fork of [MrNeRF/LichtFeld-Studio](https://github.com/MrNeRF/LichtFeld-Studio), not an official release or a build published by the upstream maintainer. The custom Windows x64 Release package is produced with GitHub Actions from the `security/hardening-audit-2026-11` branch.
+>
+> **What is customized in this fork**
+> - A dedicated Windows CI workflow builds portable Release and Debug configurations with CUDA 12.8; the Release workflow installs and packages the portable application.
+> - Dependency versions are pinned/updated in the vcpkg manifest, including Brotli 1.2.1 and updated versions of FFmpeg, OpenSSL, curl, libarchive, Assimp, TIFF, and other dependencies.
+> - Additional build preflight checks and CPU-only regression tests cover selected path handling, Python runtime, formats, image codecs, UI contracts, and related Windows build behavior.
+> - A separate workflow can generate a dependency inventory and CycloneDX SBOM for the resolved vcpkg dependency set.
+>
+> The application source also includes upstream development changes beyond the `v0.5.4.2` tag. The current source declares project version **0.5.5**; this should not be interpreted as an official upstream 0.5.5 release. The tested Windows artifact is tied to commit [`8b46835aa9487e018138c68a22e0f57763023db3`](https://github.com/ProCro88/LichtFeld-Studio/commit/8b46835aa9487e018138c68a22e0f57763023db3).
+>
+> This fork is provided as-is. It is not endorsed by or affiliated with the upstream maintainer. See [LICENSE](LICENSE), [LICENSE-EXCEPTION.txt](LICENSE-EXCEPTION.txt), and the third-party notices included with the portable package for licensing terms.
+
 ## See It in Action
 
 <div align="center">

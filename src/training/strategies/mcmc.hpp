@@ -58,7 +58,9 @@ namespace lfs::training {
         bool has_checkpoint_runtime_state() const noexcept override { return static_cast<bool>(_optimizer); }
         bool can_adopt_checkpoint_state(const IStrategy& loaded) const noexcept override;
         void adopt_checkpoint_state(IStrategy& loaded) noexcept override;
-        const char* strategy_type() const override { return "mcmc"; }
+        const char* strategy_type() const override {
+            return _params && _params->strategy == "abs-gs" ? "abs-gs" : "mcmc";
+        }
 
         // Reserve optimizer capacity for future growth (e.g., after checkpoint load)
         void reserve_optimizer_capacity(size_t capacity) override;

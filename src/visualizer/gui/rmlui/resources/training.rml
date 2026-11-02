@@ -125,6 +125,7 @@
           <option value="mrnf" data-tooltip="training.tooltip.opt.strategy.mrnf">{{label_strategy_mrnf}}</option>
           <option value="igs+" data-tooltip="training.tooltip.opt.strategy.igs_plus">{{label_strategy_igs_plus}}</option>
           <option value="mcmc" data-tooltip="training.tooltip.opt.strategy.mcmc">{{label_strategy_mcmc}}</option>
+          <option value="abs-gs" data-tooltip="training.tooltip.opt.strategy.abs_gs">{{label_strategy_abs_gs}}</option>
         </select>
       </div>
       <div class="setting-row"

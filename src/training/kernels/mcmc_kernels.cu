@@ -661,6 +661,36 @@ namespace lfs::training::mcmc {
             weight_row[idx] = 0.f;
     }
 
+    __global__ void max_abs_grad_and_zero_densification_kernel(
+        float* __restrict__ score_max,
+        float* __restrict__ grad_y_row,
+        float* __restrict__ grad_x_row,
+        size_t N) {
+        const size_t idx = threadIdx.x + blockIdx.x * blockDim.x;
+        if (idx >= N) return;
+        const float gx = grad_x_row[idx];
+        const float gy = grad_y_row[idx];
+        const float score = hypotf(gx, gy);
+        score_max[idx] = fmaxf(score_max[idx], score);
+        grad_x_row[idx] = 0.0f;
+        grad_y_row[idx] = 0.0f;
+    }
+
+    void launch_max_abs_grad_and_zero_densification(
+        float* score_max,
+        float* grad_y_row,
+        float* grad_x_row,
+        size_t N,
+        void* stream) {
+        if (N == 0) return;
+        constexpr int threads = 256;
+        const dim3 grid((N + threads - 1) / threads);
+        const cudaStream_t cuda_stream = resolve_stream(stream);
+        max_abs_grad_and_zero_densification_kernel<<<grid, threads, 0, cuda_stream>>>(
+            score_max, grad_y_row, grad_x_row, N);
+        LFS_CUDA_LAUNCH_CHECK(cuda_stream, "training.mcmc.max_abs_grad_and_zero_densification");
+    }
+
     void launch_max_error_and_zero_densification(
         float* error_max,
         float* error_row,

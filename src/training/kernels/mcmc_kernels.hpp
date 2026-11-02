@@ -177,4 +177,13 @@ namespace lfs::training::mcmc {
         size_t N,
         void* stream = nullptr);
 
+    // AbsGS: combine the accumulated absolute x/y projected-mean gradients,
+    // then keep the maximum score across camera views and clear both rows.
+    void launch_max_abs_grad_and_zero_densification(
+        float* score_max,
+        float* grad_y_row,
+        float* grad_x_row,
+        size_t N,
+        void* stream = nullptr);
+
 } // namespace lfs::training::mcmc

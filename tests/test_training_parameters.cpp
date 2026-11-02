@@ -185,6 +185,18 @@ namespace {
         EXPECT_EQ(resolved<size_t>(defaults, "refine_every"), 100u);
     }
 
+    TEST_F(TrainingParametersTest, AbsGsUsesMcmcDefaultsAndKeepsItsStrategyIdentity) {
+        const auto abs_gs = OptimizationParameters::defaults_for_strategy("abs-gs");
+        const auto mcmc = OptimizationParameters::defaults_for_strategy("mcmc");
+
+        EXPECT_TRUE(lfs::core::param::is_valid_strategy_name("abs-gs"));
+        EXPECT_EQ(abs_gs.strategy, "abs-gs");
+        EXPECT_EQ(abs_gs.opacity_lr, mcmc.opacity_lr);
+        EXPECT_EQ(abs_gs.max_cap, mcmc.max_cap);
+        EXPECT_EQ(abs_gs.refine_every, mcmc.refine_every);
+        EXPECT_EQ(abs_gs.use_exposure_correction, mcmc.use_exposure_correction);
+    }
+
     TEST_F(TrainingParametersTest, ExposureCorrectionIsEnabledOnlyByMrnfDefaults) {
         EXPECT_FALSE(OptimizationParameters::defaults_for_strategy("mcmc").use_exposure_correction);
         EXPECT_FALSE(OptimizationParameters::defaults_for_strategy("igs+").use_exposure_correction);

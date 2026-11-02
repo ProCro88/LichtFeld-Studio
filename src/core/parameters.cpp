@@ -859,7 +859,7 @@ namespace lfs::core {
             constexpr size_t MAX_ITERATION_VALUE = static_cast<size_t>(std::numeric_limits<int>::max());
 
             if (!is_valid_strategy_name(strategy))
-                return std::format("strategy must be one of mcmc, mrnf, or igs+ (got '{}')", strategy);
+                return std::format("strategy must be one of mcmc, abs-gs, mrnf, or igs+ (got '{}')", strategy);
             if (const auto sets = parse_eval_pixel_sets(eval_mask_report); !sets)
                 return std::format("eval_mask_report must be a comma list of mask, unmasked and inverted ({}: '{}')",
                                    sets.error().user_message(), eval_mask_report);

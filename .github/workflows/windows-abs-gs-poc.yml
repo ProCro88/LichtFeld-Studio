@@ -26,6 +26,18 @@ jobs:
           fetch-depth: 0
           submodules: recursive
 
+      - name: Verify Visual Studio Clang toolchain
+        shell: pwsh
+        run: |
+          $vswhere = "${env:ProgramFiles(x86)}\\Microsoft Visual Studio\\Installer\\vswhere.exe"
+          $vs = & $vswhere -latest -products '*' -property installationPath
+          if (-not $vs) { throw 'Visual Studio 2022 installation not found' }
+          $clang = Join-Path $vs 'VC\\Tools\\Llvm\\bin'
+          if (-not (Test-Path (Join-Path $clang 'clang-cl.exe'))) {
+            throw 'clang-cl.exe is missing. The runner needs the Visual Studio component C++ Clang Compiler for Windows.'
+          }
+          "$clang" | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
+
       - name: Install CUDA 12.8
         shell: pwsh
         run: |
@@ -45,7 +57,7 @@ jobs:
         shell: pwsh
         run: |
           $vcpkg = Join-Path $env:RUNNER_TEMP 'vcpkg'
-          git clone --depth 1 https://github.com/microsoft/vcpkg.git $vcpkg
+          git clone https://github.com/microsoft/vcpkg.git $vcpkg
           if ($LASTEXITCODE -ne 0) { throw 'vcpkg clone failed' }
           & "$vcpkg\\bootstrap-vcpkg.bat" -disableMetrics
           if ($LASTEXITCODE -ne 0) { throw 'vcpkg bootstrap failed' }

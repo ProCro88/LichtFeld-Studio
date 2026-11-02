@@ -304,3 +304,58 @@ jobs:
           }
           Write-Host "Found nvJPEG2000 runtime: $runtime"
           $extensions | ForEach-Object { Write-Host "Found nvjpeg2k extension: $($_.FullName)" }
+
+      - name: Package Release portable folder
+        if: matrix.build_type == 'Release'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $releaseDir = Join-Path $env:BUILD_DIR 'Release'
+          $exe = Join-Path $releaseDir 'LichtFeld-Studio.exe'
+          if (-not (Test-Path $exe)) {
+            throw "Release executable not found: $exe"
+          }
+          if (-not (Test-Path (Join-Path $releaseDir 'resources'))) {
+            throw "Release resources directory is missing"
+          }
+          if (-not (Test-Path (Join-Path $releaseDir 'extensions'))) {
+            throw "Release extensions directory is missing"
+          }
+          $licenseDir = Join-Path $releaseDir 'licenses'
+          New-Item -ItemType Directory -Force -Path $licenseDir | Out-Null
+          Copy-Item 'LICENSE' $licenseDir
+          Copy-Item 'LICENSE-EXCEPTION.txt' $licenseDir
+          if (Test-Path 'resources/licenses') {
+            Copy-Item 'resources/licenses/*' $licenseDir -Recurse -Force
+          }
+          $zip = Join-Path $env:RUNNER_TEMP 'LichtFeld-Studio-Windows-x64-Release.zip'
+          if (Test-Path $zip) { Remove-Item $zip -Force }
+          Compress-Archive -Path (Join-Path $releaseDir '*') -DestinationPath $zip -CompressionLevel Optimal
+          $archive = [System.IO.Compression.ZipFile]::OpenRead($zip)
+          try {
+            $names = @($archive.Entries | ForEach-Object FullName)
+            if (-not ($names -contains 'LichtFeld-Studio.exe')) {
+              throw 'Packaged archive is missing LichtFeld-Studio.exe'
+            }
+            if (-not ($names | Where-Object { $_ -like 'resources/*' })) {
+              throw 'Packaged archive is missing resources'
+            }
+            if (-not ($names | Where-Object { $_ -like 'extensions/*' })) {
+              throw 'Packaged archive is missing extensions'
+            }
+            Write-Host "Portable archive contains $($archive.Entries.Count) files"
+          }
+          finally {
+            $archive.Dispose()
+          }
+          "PORTABLE_ZIP=$zip" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: Upload Windows Release portable artifact
+        if: matrix.build_type == 'Release'
+        uses: actions/upload-artifact@v4
+        with:
+          name: LichtFeld-Studio-Windows-x64-Release
+          path: ${{ runner.temp }}/LichtFeld-Studio-Windows-x64-Release.zip
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 14

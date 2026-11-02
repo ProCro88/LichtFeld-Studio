@@ -14,7 +14,7 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 360
     env:
-      VCPKG_ROOT: ${{ runner.temp }}\\vcpkg
+      VCPKG_ROOT: C:\\vcpkg
       VCPKG_BUILD_TYPE: release
       CUDA_PATH: C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v12.8
       BUILD_DIR: b

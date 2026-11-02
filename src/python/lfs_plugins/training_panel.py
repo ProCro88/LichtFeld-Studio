@@ -135,6 +135,7 @@ def _depth_loss_mode_or_default(mode):
 
 STRATEGY_LABEL_KEYS = {
     "mcmc": "training.options.strategy.mcmc",
+    "abs-gs": "training.options.strategy.abs_gs",
     "mrnf": "training.options.strategy.mrnf",
     "mnrf": "training.options.strategy.mrnf",
     "lfs": "training.options.strategy.mrnf",
@@ -402,6 +403,7 @@ class TrainingPanel(Panel):
         model.bind_func(
             "label_strategy_mcmc", lambda: tr("training.options.strategy.mcmc")
         )
+        model.bind_func("label_strategy_abs_gs", lambda: tr("training.options.strategy.abs_gs"))
         model.bind_func("label_sh_degree", lambda: tr("training_params.sh_degree"))
         model.bind_func(
             "label_depth_loss_mode", lambda: tr("training_params.depth_loss_mode")

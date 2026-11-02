@@ -13,13 +13,14 @@ on:
       - 'docs/**'
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   windows-preflight:
-    if: github.repository == 'MrNeRF/LichtFeld-Studio' || github.event.pull_request.base.repo.full_name == 'MrNeRF/LichtFeld-Studio'
     uses: ./.github/workflows/windows-build-preflight.yml
 
   test-plugin-venv:
-    if: github.repository == 'MrNeRF/LichtFeld-Studio' || github.event.pull_request.base.repo.full_name == 'MrNeRF/LichtFeld-Studio'
     runs-on: windows-2022
     steps:
       - uses: actions/checkout@v7
@@ -90,7 +91,6 @@ jobs:
 
   build-windows:
     needs: windows-preflight
-    if: github.repository == 'MrNeRF/LichtFeld-Studio' || github.event.pull_request.base.repo.full_name == 'MrNeRF/LichtFeld-Studio'
     runs-on: windows-2022
     strategy:
       fail-fast: false
@@ -133,7 +133,7 @@ jobs:
           # The vcpkg checkout must contain every pinned port version, so the key moves
           # with the pins. No restore-keys: an older clone restored under a new key
           # would make the clone below fail on the existing directory.
-          key: vcpkg-tool-${{ runner.os }}-2026-10-22
+          key: vcpkg-tool-${{ runner.os }}-${{ hashFiles('vcpkg.json') }}
 
       - name: Setup vcpkg
         if: steps.cache-vcpkg-tool.outputs.cache-hit != 'true'

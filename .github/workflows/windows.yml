@@ -2,7 +2,7 @@ name: Windows CUDA Build
 
 on:
   push:
-    branches: [ dev, master ]
+    branches: [ dev, master, security/hardening-audit-2026-11 ]
     paths-ignore:
       - '**.md'
       - 'docs/**'

@@ -786,7 +786,8 @@ namespace fast_lfs::rasterization::kernels::backward {
         constexpr int kUDepth = 4;
         constexpr int kUNormal = 5;
         // MRNF sums weight and error; MCMC reads the error row alone.
-        constexpr int kDensificationFields = DENSIFICATION_TYPE == DensificationType::MRNF   ? 2
+        constexpr int kDensificationFields = (DENSIFICATION_TYPE == DensificationType::MRNF ||
+                                              DENSIFICATION_TYPE == DensificationType::AbsGS) ? 2
                                              : DENSIFICATION_TYPE == DensificationType::MCMC ? 1
                                                                                              : 0;
         constexpr int kUDensification = kUNormal + (NORMAL_CHANNEL ? 3 : 0);
@@ -832,7 +833,9 @@ namespace fast_lfs::rasterization::kernels::backward {
             else if (field < kFieldDensification)
                 target_ptr = reinterpret_cast<float*>(grad_normal) + 3 * row + field - kFieldNormal;
             else if (field < kFieldEdge)
-                target_ptr = (DENSIFICATION_TYPE == DensificationType::MRNF && field == kFieldDensification
+                target_ptr = ((DENSIFICATION_TYPE == DensificationType::MRNF ||
+                               DENSIFICATION_TYPE == DensificationType::AbsGS) &&
+                              field == kFieldDensification
                                   ? densification_weight
                                   : densification_error) +
                              primitive;
@@ -913,6 +916,15 @@ namespace fast_lfs::rasterization::kernels::backward {
                 const float dL_dalpha = T_before * (dot(color, pixel_grad_color) + depth * pixel_grad_depth +
                                                     normal_dot_grad + variance_cost - grad_T_after);
                 h[k] = accepted && !saturated ? -alpha * dL_dalpha : 0.0f;
+                if constexpr (DENSIFICATION_TYPE == DensificationType::AbsGS) {
+                    const float dx = mean2d.x - center_x;
+                    const float dy = dy0 - static_cast<float>(k);
+                    const float3 conic = s_conic[slot];
+                    const float grad_mean_x = conic.x * dx * h[k] + conic.y * dy * h[k];
+                    const float grad_mean_y = conic.y * dx * h[k] + conic.z * dy * h[k];
+                    sums.u[kUDensification] += fabsf(grad_mean_x);
+                    sums.u[kUDensification + 1] += fabsf(grad_mean_y);
+                }
                 sums.u[kUColor] += dL_dcolor.x;
                 sums.u[kUColor + 1] += dL_dcolor.y;
                 sums.u[kUColor + 2] += dL_dcolor.z;

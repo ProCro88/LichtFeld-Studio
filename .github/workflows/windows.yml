@@ -283,7 +283,6 @@ jobs:
 
       - name: Test native Python path metadata without long-path opt-in
         if: matrix.build_type == 'Debug'
-        if: matrix.build_type == 'Debug'
         shell: cmd
         run: |
           set PYTHONHOME=%CD%\%BUILD_DIR%\vcpkg_installed\x64-windows\tools\python3

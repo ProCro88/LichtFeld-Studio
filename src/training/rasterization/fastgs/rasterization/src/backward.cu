@@ -173,6 +173,10 @@ void fast_lfs::rasterization::backward(
                 launch_blend.template operator()<DensificationType::None, false, true, 2>();
             else
                 launch_blend.template operator()<DensificationType::None, false, false, 2>();
+        } else if (densification_type == DensificationType::AbsGS &&
+                   densification_weight != nullptr && densification_error != nullptr) {
+            // AbsGS accumulates absolute per-pixel projected-mean gradients in two rows.
+            launch_production.template operator()<DensificationType::AbsGS>();
         } else if (densification_weight != nullptr && densification_error != nullptr &&
                    (densification_type == DensificationType::MRNF || densification_error_map != nullptr)) {
             // Both rows: the MRNF variant sums the weight and the (map-weighted) error.

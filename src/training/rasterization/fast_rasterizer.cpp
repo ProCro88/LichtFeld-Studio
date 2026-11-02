@@ -793,6 +793,7 @@ namespace lfs::training {
         const auto densification_rows = gaussian_model.densification_rows(static_cast<size_t>(n_primitives));
         const bool update_densification_info = densification_rows.error != nullptr;
         const bool use_pixel_error_densification = update_densification_info &&
+                                                   densification_type != DensificationType::AbsGS &&
                                                    pixel_error_map.is_valid() &&
                                                    pixel_error_map.numel() > 0;
 

@@ -334,7 +334,7 @@ namespace lfs::python {
             }
             const auto canonical_strategy = core::param::canonical_strategy_name(strategy);
             if (canonical_strategy.empty())
-                throw std::invalid_argument("Strategy must be 'mcmc', 'mrnf', or 'igs+'");
+                throw std::invalid_argument("Strategy must be 'mcmc', 'abs-gs', 'mrnf', or 'igs+'");
             if (const auto* tm = get_trainer_manager(); tm && !tm->canChangeStrategy(canonical_strategy))
                 throw std::invalid_argument(LOC("training.reset_before_strategy_change"));
 
@@ -1111,7 +1111,7 @@ namespace lfs::python {
                 "set_strategy",
                 [](PyOptimizationParams& /*self*/, const std::string& strategy) { set_active_strategy(strategy); },
                 nb::arg("strategy"),
-                "Set active strategy ('mcmc', 'mrnf', or 'igs+')")
+                "Set active strategy ('mcmc', 'abs-gs', 'mrnf', or 'igs+')")
             .def_prop_ro(
                 "headless", [](PyOptimizationParams& self) { return self.params().headless; },
                 "Whether running without visualization")

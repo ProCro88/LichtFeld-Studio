@@ -1,6 +1,18 @@
 name: AbsGS PoC - Windows Portable Build
 
 on:
+  push:
+    branches:
+      - experimental/abs-gs-floater-free
+    paths:
+      - '.github/workflows/windows-abs-gs-poc.yml'
+      - 'src/**'
+      - 'cmake/**'
+      - 'CMakeLists.txt'
+      - 'vcpkg.json'
+      - 'vcpkg-configuration.json'
+      - 'tools/**'
+      - 'resources/**'
   workflow_dispatch:
 
 permissions:

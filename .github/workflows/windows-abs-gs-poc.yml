@@ -1,0 +1,88 @@
+name: AbsGS PoC - Windows Portable Build
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: abs-gs-poc-windows-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-windows-portable:
+    name: Build Windows x64 portable ZIP
+    runs-on: windows-2022
+    timeout-minutes: 180
+    env:
+      CUDA_PATH: C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v12.8
+      BUILD_DIR: b-abs-gs-poc
+
+    steps:
+      - name: Checkout selected branch
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: Install CUDA 12.8
+        shell: pwsh
+        run: |
+          $installer = Join-Path $env:RUNNER_TEMP 'cuda.exe'
+          Invoke-WebRequest 'https://developer.download.nvidia.com/compute/cuda/12.8.0/local_installers/cuda_12.8.0_571.96_windows.exe' -OutFile $installer
+          Start-Process -FilePath $installer -ArgumentList '-y -s -accepteula -toolkit -override -noDisplayDriver' -Wait
+
+      - name: Set CUDA environment
+        shell: pwsh
+        run: |
+          $cuda = 'C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v12.8'
+          "CUDA_PATH=$cuda" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "CUDA_PATH_V12_8=$cuda" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "$cuda\\bin" | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
+
+      - name: Setup vcpkg
+        shell: pwsh
+        run: |
+          $vcpkg = Join-Path $env:RUNNER_TEMP 'vcpkg'
+          git clone --depth 1 https://github.com/microsoft/vcpkg.git $vcpkg
+          if ($LASTEXITCODE -ne 0) { throw 'vcpkg clone failed' }
+          & "$vcpkg\\bootstrap-vcpkg.bat" -disableMetrics
+          if ($LASTEXITCODE -ne 0) { throw 'vcpkg bootstrap failed' }
+          "VCPKG_ROOT=$vcpkg" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "VCPKG_BUILD_TYPE=release" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: Configure portable Release build
+        shell: cmd
+        run: |
+          call "C:\\Program Files\\Microsoft Visual Studio\\2022\\Enterprise\\VC\\Auxiliary\\Build\\vcvars64.bat"
+          cmake -B %BUILD_DIR% -S . -G Ninja -DCMAKE_BUILD_TYPE=Release -DLFS_FAST_COMPILE=ON -DBUILD_PORTABLE=ON -DBUILD_TESTS=OFF -DBUILD_FORMAT_TESTS=OFF -DBUILD_VISUALIZER_TESTS=OFF -DBUILD_UNICODE_TEST_ONLY=OFF -DBUILD_PYTHON_STUBS=OFF -DLFS_DEV_IMPORT_SOURCE_PYTHON=OFF -DLFS_DEV_IMPORT_SOURCE_RESOURCES=OFF -DLFS_ENABLE_CUDA_DEVICE_DEBUG=OFF -DENABLE_COMPILER_CACHE=OFF
+          if errorlevel 1 exit /b 1
+
+      - name: Build application
+        shell: cmd
+        run: |
+          call "C:\\Program Files\\Microsoft Visual Studio\\2022\\Enterprise\\VC\\Auxiliary\\Build\\vcvars64.bat"
+          cmake --build %BUILD_DIR% -j 4
+          if errorlevel 1 exit /b 1
+
+      - name: Install portable distribution
+        shell: cmd
+        run: |
+          cmake --install %BUILD_DIR% --prefix dist-abs-gs-poc
+          if errorlevel 1 exit /b 1
+          if not exist dist-abs-gs-poc\\bin\\LichtFeld-Studio.exe exit /b 1
+
+      - name: Create ZIP
+        shell: pwsh
+        run: |
+          Compress-Archive -Path 'dist-abs-gs-poc\\*' -DestinationPath 'LichtFeld-Studio-AbsGS-PoC-Windows-x64.zip' -CompressionLevel Optimal
+          if (-not (Test-Path 'LichtFeld-Studio-AbsGS-PoC-Windows-x64.zip')) { throw 'ZIP was not created' }
+
+      - name: Upload portable ZIP
+        uses: actions/upload-artifact@v6
+        with:
+          name: LichtFeld-Studio-AbsGS-PoC-Windows-x64
+          path: LichtFeld-Studio-AbsGS-PoC-Windows-x64.zip
+          if-no-files-found: error
+          retention-days: 14

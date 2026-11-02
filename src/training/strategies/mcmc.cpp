@@ -177,8 +177,9 @@ namespace lfs::training {
         const size_t reserve =
             (_params && _params->max_cap > 0) ? static_cast<size_t>(_params->max_cap) : 0;
         // MCMC reads only the error row.
+        const size_t densification_rows = (_params && _params->strategy == "abs-gs") ? 2 : 1;
         ensure_densification_info_shape_inplace(
-            _splat_data->_densification_info, n, _splat_data->means().device(), 1);
+            _splat_data->_densification_info, n, _splat_data->means().device(), densification_rows);
         if (_params) {
             ensure_max_screen_share_shape(*_splat_data, n, reserve);
             publish_screen_share_cap(_optimizer.get(), *_splat_data, *_params);
@@ -570,15 +571,18 @@ namespace lfs::training {
         if (iter < _params->stop_refine) {
             ensure_densification_info_shape();
 
-            // One training iteration corresponds to one camera view, so the error row is E_k^pi.
-            // Keep the max over views as the densification priority.
             const auto& info = _splat_data->_densification_info;
             const auto rows = _splat_data->densification_rows(_error_score_max.numel());
-            if (rows.error != nullptr && info.shape()[info.ndim() - 1] == _error_score_max.numel()) {
+            if (_params && _params->strategy == "abs-gs") {
+                if (rows.error != nullptr && rows.weight != nullptr &&
+                    info.shape()[info.ndim() - 1] == _error_score_max.numel()) {
+                    lfs::training::mcmc::launch_max_abs_grad_and_zero_densification(
+                        _error_score_max.ptr<float>(), rows.error, rows.weight,
+                        _error_score_max.numel());
+                }
+            } else if (rows.error != nullptr && info.shape()[info.ndim() - 1] == _error_score_max.numel()) {
                 lfs::training::mcmc::launch_max_error_and_zero_densification(
-                    _error_score_max.ptr<float>(),
-                    rows.error,
-                    rows.weight,
+                    _error_score_max.ptr<float>(), rows.error, rows.weight,
                     _error_score_max.numel());
             } else if (info.is_valid() && info.numel() > 0) {
                 _splat_data->_densification_info.zero_();

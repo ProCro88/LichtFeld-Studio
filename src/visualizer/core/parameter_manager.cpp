@@ -184,7 +184,7 @@ namespace lfs::vis {
     }
 
     lfs::core::param::OptimizationParameters& ParameterManager::getCurrentParams(const std::string_view strategy) {
-        if (strategy == "mcmc")
+        if (strategy == "mcmc" || strategy == "abs-gs")
             return mcmc_current_;
         if (lfs::core::param::is_mrnf_strategy(strategy))
             return mrnf_current_;
@@ -208,7 +208,7 @@ namespace lfs::vis {
 
         std::lock_guard lock(params_mutex_);
         const std::string_view resolved_strategy = strategy.empty() ? std::string_view(active_strategy_) : strategy;
-        if (resolved_strategy == "mcmc")
+        if (resolved_strategy == "mcmc" || resolved_strategy == "abs-gs")
             return mcmc_session_;
         if (lfs::core::param::is_mrnf_strategy(resolved_strategy))
             return mrnf_session_;
@@ -219,7 +219,7 @@ namespace lfs::vis {
 
     void ParameterManager::resetToDefaults(const std::string_view strategy) {
         std::lock_guard lock(params_mutex_);
-        if (strategy.empty() || strategy == "mcmc") {
+        if (strategy.empty() || strategy == "mcmc" || strategy == "abs-gs") {
             mcmc_current_ = mcmc_session_;
             mcmc_current_references_ =
                 mcmc_session_references_;
@@ -285,7 +285,7 @@ namespace lfs::vis {
             &mrnf_session_references_;
         auto* current_references =
             &mrnf_current_references_;
-        if (active_strategy_ == "mcmc") {
+        if (active_strategy_ == "mcmc" || active_strategy_ == "abs-gs") {
             session = &mcmc_session_;
             current = &mcmc_current_;
             session_references =

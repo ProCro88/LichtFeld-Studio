@@ -10,7 +10,8 @@
 
 enum class DensificationType : int { None = 0,
                                      MCMC = 1,
-                                     MRNF = 2 };
+                                     MRNF = 2,
+                                     AbsGS = 3 };
 
 namespace fast_lfs::rasterization {
     // dL/dalpha of the background blend (output = color + (1 - alpha) * bg).

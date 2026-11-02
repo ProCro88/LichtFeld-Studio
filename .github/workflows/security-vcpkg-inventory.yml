@@ -1,0 +1,104 @@
+name: Security - Windows vcpkg inventory
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ security/hardening-audit-2026-11 ]
+    paths:
+      - 'vcpkg.json'
+      - 'vcpkg-configuration.json'
+      - '.github/workflows/security-vcpkg-inventory.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: security-vcpkg-inventory-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  inventory:
+    runs-on: windows-2022
+    timeout-minutes: 180
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 1
+          submodules: recursive
+
+      - name: Read pinned vcpkg baseline
+        id: baseline
+        shell: pwsh
+        run: |
+          $manifest = Get-Content vcpkg.json -Raw | ConvertFrom-Json
+          $baseline = $manifest.'builtin-baseline'
+          if (-not $baseline -or $baseline -notmatch '^[0-9a-f]{40}$') { throw "Invalid vcpkg baseline" }
+          "commit=$baseline" >> $env:GITHUB_OUTPUT
+
+      - name: Checkout and bootstrap pinned vcpkg
+        shell: pwsh
+        run: |
+          git clone https://github.com/microsoft/vcpkg.git "$env:RUNNER_TEMP\vcpkg"
+          if ($LASTEXITCODE -ne 0) { throw "vcpkg clone failed" }
+          git -C "$env:RUNNER_TEMP\vcpkg" checkout "${{ steps.baseline.outputs.commit }}"
+          if ($LASTEXITCODE -ne 0) { throw "vcpkg checkout failed" }
+          & "$env:RUNNER_TEMP\vcpkg\bootstrap-vcpkg.bat" -disableMetrics
+          if ($LASTEXITCODE -ne 0) { throw "vcpkg bootstrap failed" }
+          "VCPKG_ROOT=$env:RUNNER_TEMP\vcpkg" >> $env:GITHUB_ENV
+          "VCPKG_DISABLE_METRICS=1" >> $env:GITHUB_ENV
+
+      - name: Resolve exact Windows x64 dependency graph
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          & "$env:VCPKG_ROOT\vcpkg.exe" install --triplet x64-windows --host-triplet x64-windows --x-install-root "$env:GITHUB_WORKSPACE\vcpkg_installed"
+          if ($LASTEXITCODE -ne 0) { throw "vcpkg install failed; inventory is incomplete" }
+          $lines = @(& "$env:VCPKG_ROOT\vcpkg.exe" list --x-install-root "$env:GITHUB_WORKSPACE\vcpkg_installed")
+          if ($LASTEXITCODE -ne 0) { throw "vcpkg list failed" }
+          $packages = @()
+          foreach ($line in $lines) {
+            if ($line -match '^([a-z0-9][a-z0-9-]*):x64-windows\s+(\S+)') {
+              $packages += [ordered]@{ name = $Matches[1]; version = $Matches[2]; triplet = 'x64-windows' }
+            }
+          }
+          if ($packages.Count -lt 1) { throw "No resolved packages found" }
+          $packages | ConvertTo-Json -Depth 5 | Set-Content -Path vcpkg-resolved-inventory.json -Encoding utf8
+          "Resolved $($packages.Count) Windows x64 packages"
+
+      - name: Generate CycloneDX SBOM from resolved package inventory
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $packages = @(Get-Content vcpkg-resolved-inventory.json -Raw | ConvertFrom-Json)
+          $components = @()
+          foreach ($p in $packages) {
+            $components += [ordered]@{
+              type = 'library'
+              name = $p.name
+              version = $p.version
+              purl = "pkg:generic/$($p.name)@$([uri]::EscapeDataString($p.version))?vcpkg_triplet=x64-windows"
+              properties = @(@{ name = 'lichtfeld:package-manager'; value = 'vcpkg' }, @{ name = 'lichtfeld:triplet'; value = 'x64-windows' })
+            }
+          }
+          $sbom = [ordered]@{
+            bomFormat = 'CycloneDX'
+            specVersion = '1.6'
+            serialNumber = "urn:uuid:$([guid]::NewGuid())"
+            version = 1
+            metadata = @{ timestamp = (Get-Date).ToUniversalTime().ToString('o'); tools = @(@{ vendor = 'LichtFeld-Studio security workflow'; name = 'vcpkg inventory exporter'; version = '1.0' }) }
+            components = $components
+          }
+          $sbom | ConvertTo-Json -Depth 12 | Set-Content -Path lichtfeld-windows-vcpkg.cdx.json -Encoding utf8
+          Write-Host "Created CycloneDX inventory with $($components.Count) components."
+          Write-Warning "This SBOM records resolved vcpkg versions. Generic purls are not authoritative vcpkg advisory identifiers; this workflow does not claim an OSV vulnerability scan."
+
+      - name: Upload resolved inventory and SBOM
+        uses: actions/upload-artifact@v4
+        with:
+          name: lichtfeld-windows-vcpkg-sbom
+          path: |
+            vcpkg-resolved-inventory.json
+            lichtfeld-windows-vcpkg.cdx.json
+          if-no-files-found: error
+          retention-days: 30

@@ -1,5 +1,5 @@
 {
-  "builtin-baseline": "9eec002df1cd109f8f104cd966a763daf9751489",
+  "builtin-baseline": "9a5dfef5d1a0438a7d24856a85bd60f309d355e9",
   "dependencies": [
     "apriltag",
     "cppzmq",
@@ -241,6 +241,10 @@
     {
       "name": "tiff",
       "version": "4.7.2"
+    },
+    {
+      "name": "brotli",
+      "version": "1.2.1"
     }
   ]
 }

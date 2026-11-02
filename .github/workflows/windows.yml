@@ -161,7 +161,11 @@ jobs:
         shell: cmd
         run: |
           call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
-          python tools/ci_retry_configure.py -- cmake -B %BUILD_DIR% -S . -G Ninja -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DLFS_FAST_COMPILE=ON -DBUILD_FORMAT_TESTS=ON -DBUILD_VISUALIZER_TESTS=ON -DBUILD_UNICODE_TEST_ONLY=ON -DBUILD_PYTHON_STUBS=OFF -DLFS_DEV_IMPORT_SOURCE_PYTHON=OFF -DLFS_DEV_IMPORT_SOURCE_RESOURCES=OFF -DLFS_ENABLE_CUDA_DEVICE_DEBUG=OFF
+          if "${{ matrix.build_type }}"=="Release" (
+            python tools/ci_retry_configure.py -- cmake -B %BUILD_DIR% -S . -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_PORTABLE=ON -DBUILD_FORMAT_TESTS=OFF -DBUILD_VISUALIZER_TESTS=OFF -DBUILD_UNICODE_TEST_ONLY=OFF -DBUILD_PYTHON_STUBS=OFF -DLFS_DEV_IMPORT_SOURCE_PYTHON=OFF -DLFS_DEV_IMPORT_SOURCE_RESOURCES=OFF -DLFS_ENABLE_CUDA_DEVICE_DEBUG=OFF
+          ) else (
+            python tools/ci_retry_configure.py -- cmake -B %BUILD_DIR% -S . -G Ninja -DCMAKE_BUILD_TYPE=Debug -DLFS_FAST_COMPILE=ON -DBUILD_FORMAT_TESTS=ON -DBUILD_VISUALIZER_TESTS=ON -DBUILD_UNICODE_TEST_ONLY=ON -DBUILD_PYTHON_STUBS=OFF -DLFS_DEV_IMPORT_SOURCE_PYTHON=OFF -DLFS_DEV_IMPORT_SOURCE_RESOURCES=OFF -DLFS_ENABLE_CUDA_DEVICE_DEBUG=OFF
+          )
 
       # Save fetched archives even when configure fails later. vcpkg verifies
       # downloaded archives against their hashes.
@@ -197,19 +201,23 @@ jobs:
           cmake --build %BUILD_DIR% -j %NUMBER_OF_PROCESSORS%
 
       - name: Run CPU-only SDL coordinate tests
+        if: matrix.build_type == 'Debug'
         # The default app build also builds this isolated, SDL-free test executable.
         shell: cmd
         run: ctest --test-dir %BUILD_DIR% --output-on-failure --no-tests=error -R "^lichtfeld\.sdl_coordinates$"
 
       - name: Run Python runtime DLL boundary tests
+        if: matrix.build_type == 'Debug'
         shell: cmd
         run: ctest --test-dir %BUILD_DIR% --output-on-failure --no-tests=error -R "^lichtfeld\.python_runtime_state$"
 
       - name: Run splat drag contracts
+        if: matrix.build_type == 'Debug'
         shell: cmd
         run: ctest --test-dir %BUILD_DIR% --output-on-failure --no-tests=error -R "^(selection_outline_contract|splat_drag_axes_contract|splat_transfer_contract|native_drag_contract|file_transfer_progress_contract|native_modal_frame_contract)$"
 
       - name: Provision a network share for path tests
+        if: matrix.build_type == 'Debug'
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
@@ -226,6 +234,7 @@ jobs:
           "LFS_TEST_REQUIRE_UNC=1" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
       - name: Build and run CPU-only format tests
+        if: matrix.build_type == 'Debug'
         shell: cmd
         run: |
           call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
@@ -233,6 +242,7 @@ jobs:
           ctest --test-dir %BUILD_DIR% --output-on-failure --no-tests=error -R "^lichtfeld_format_tests$"
 
       - name: Build and run EXR image codec tests
+        if: matrix.build_type == 'Debug'
         shell: cmd
         run: |
           call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
@@ -240,6 +250,7 @@ jobs:
           ctest --test-dir %BUILD_DIR% --output-on-failure --no-tests=error -R "^lichtfeld_image_codec_tests$"
 
       - name: Build and run CPU-only Unicode path tests
+        if: matrix.build_type == 'Debug'
         shell: cmd
         env:
           VCPKG_RUNTIME_SUBDIR: ${{ matrix.build_type == 'Debug' && 'debug\bin' || 'bin' }}
@@ -253,6 +264,7 @@ jobs:
           %BUILD_DIR%\tests\lichtfeld_native_filesystem_tests.exe --gtest_color=no
 
       - name: Test Python paths without executable long-path opt-in
+        if: matrix.build_type == 'Debug'
         shell: cmd
         run: |
           call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
@@ -270,7 +282,8 @@ jobs:
           %BUILD_DIR%\path-policy-off-python\python.exe -m unittest tests/python/test_native_path_io.py
 
       - name: Test native Python path metadata without long-path opt-in
-        if: matrix.build_type == 'Release'
+        if: matrix.build_type == 'Debug'
+        if: matrix.build_type == 'Debug'
         shell: cmd
         run: |
           set PYTHONHOME=%CD%\%BUILD_DIR%\vcpkg_installed\x64-windows\tools\python3
@@ -280,6 +293,7 @@ jobs:
           %BUILD_DIR%\path-policy-off-python\python.exe -c "import os, unittest; build = os.path.abspath(os.environ['BUILD_DIR']); dll_dirs = [build, os.path.join(build, 'vcpkg_installed', 'x64-windows', 'bin'), os.path.join(os.environ['CUDA_PATH'], 'bin')]; dll_handles = [os.add_dll_directory(path) for path in dll_dirs]; suite = unittest.defaultTestLoader.discover('tests/python', pattern='test_native_binding_path_io.py'); result = unittest.TextTestRunner(verbosity=2).run(suite); raise SystemExit(not result.wasSuccessful())"
 
       - name: Build and run CPU-only visualizer and RmlUi tests
+        if: matrix.build_type == 'Debug'
         shell: cmd
         env:
           VCPKG_RUNTIME_SUBDIR: ${{ matrix.build_type == 'Debug' && 'debug\bin' || 'bin' }}
@@ -289,66 +303,41 @@ jobs:
           cmake --build %BUILD_DIR% --target lichtfeld_visualizer_tests lichtfeld_rmlui_tests lichtfeld_native_third_party_tests -j %NUMBER_OF_PROCESSORS%
           ctest --test-dir %BUILD_DIR% --output-on-failure -R "^(lichtfeld_visualizer_tests|lichtfeld\.rmlui|lichtfeld\.native_third_party_paths)$"
 
-      - name: Verify nvJPEG2000 runtime bundle
-        shell: pwsh
-        run: |
-          $ErrorActionPreference = 'Stop'
-          $runtime = Join-Path $env:BUILD_DIR 'nvjpeg2k_0.dll'
-          $extensionDir = Join-Path $env:BUILD_DIR 'extensions'
-          $extensions = @(Get-ChildItem $extensionDir -Filter 'nvjpeg2k_ext*.dll' -ErrorAction SilentlyContinue)
-          if (-not (Test-Path $runtime)) {
-            throw "nvJPEG2000 runtime DLL was not bundled next to the binary: $runtime"
-          }
-          if ($extensions.Count -eq 0) {
-            throw "nvjpeg2k extension DLL was not bundled in $extensionDir"
-          }
-          Write-Host "Found nvJPEG2000 runtime: $runtime"
-          $extensions | ForEach-Object { Write-Host "Found nvjpeg2k extension: $($_.FullName)" }
-
-      - name: Package Release portable folder
+      - name: Install portable Release distribution
         if: matrix.build_type == 'Release'
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          $releaseDir = Join-Path $env:BUILD_DIR 'Release'
-          $exe = Join-Path $releaseDir 'LichtFeld-Studio.exe'
-          if (-not (Test-Path $exe)) {
-            throw "Release executable not found: $exe"
-          }
-          if (-not (Test-Path (Join-Path $releaseDir 'resources'))) {
-            throw "Release resources directory is missing"
-          }
-          if (-not (Test-Path (Join-Path $releaseDir 'extensions'))) {
-            throw "Release extensions directory is missing"
-          }
-          $licenseDir = Join-Path $releaseDir 'licenses'
-          New-Item -ItemType Directory -Force -Path $licenseDir | Out-Null
-          Copy-Item 'LICENSE' $licenseDir
-          Copy-Item 'LICENSE-EXCEPTION.txt' $licenseDir
-          if (Test-Path 'resources/licenses') {
-            Copy-Item 'resources/licenses/*' $licenseDir -Recurse -Force
-          }
+          $dist = Join-Path $env:RUNNER_TEMP 'lichtfeld-dist'
+          cmake --install $env:BUILD_DIR --prefix $dist
+          $exe = Join-Path $dist 'bin\LichtFeld-Studio.exe'
+          $runtime = Join-Path $dist 'bin\nvjpeg2k_0.dll'
+          $extensions = @(Get-ChildItem (Join-Path $dist 'extensions') -Filter 'nvjpeg2k_ext*.dll' -ErrorAction SilentlyContinue)
+          if (-not (Test-Path $exe)) { throw "Installed executable missing: $exe" }
+          if (-not (Test-Path $runtime)) { throw "Installed nvJPEG2000 runtime missing: $runtime" }
+          if ($extensions.Count -eq 0) { throw "Installed nvJPEG2000 extension missing from $dist\extensions" }
+          if (-not (Test-Path (Join-Path $dist 'LICENSE'))) { throw 'Installed GPL license missing' }
+          if (-not (Test-Path (Join-Path $dist 'LICENSE-EXCEPTION.txt'))) { throw 'Installed NVIDIA license exception missing' }
+          Write-Host "Portable install verified: $dist"
+
+      - name: Package Windows Release portable artifact
+        if: matrix.build_type == 'Release'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $dist = Join-Path $env:RUNNER_TEMP 'lichtfeld-dist'
           $zip = Join-Path $env:RUNNER_TEMP 'LichtFeld-Studio-Windows-x64-Release.zip'
-          if (Test-Path $zip) { Remove-Item $zip -Force }
-          Compress-Archive -Path (Join-Path $releaseDir '*') -DestinationPath $zip -CompressionLevel Optimal
+          Compress-Archive -Path (Join-Path $dist '*') -DestinationPath $zip -CompressionLevel Optimal
           $archive = [System.IO.Compression.ZipFile]::OpenRead($zip)
           try {
             $names = @($archive.Entries | ForEach-Object FullName)
-            if (-not ($names -contains 'LichtFeld-Studio.exe')) {
-              throw 'Packaged archive is missing LichtFeld-Studio.exe'
+            foreach ($required in @('bin/LichtFeld-Studio.exe', 'LICENSE', 'LICENSE-EXCEPTION.txt')) {
+              if ($names -notcontains $required) { throw "Portable ZIP missing $required" }
             }
-            if (-not ($names | Where-Object { $_ -like 'resources/*' })) {
-              throw 'Packaged archive is missing resources'
-            }
-            if (-not ($names | Where-Object { $_ -like 'extensions/*' })) {
-              throw 'Packaged archive is missing extensions'
-            }
-            Write-Host "Portable archive contains $($archive.Entries.Count) files"
-          }
-          finally {
-            $archive.Dispose()
-          }
-          "PORTABLE_ZIP=$zip" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+            if (-not ($names | Where-Object { $_ -like 'share/LichtFeld-Studio/*' })) { throw 'Portable ZIP missing installed resources' }
+            if (-not ($names | Where-Object { $_ -like 'extensions/nvjpeg2k_ext*.dll' })) { throw 'Portable ZIP missing nvJPEG2000 extension' }
+            Write-Host "Portable ZIP verified: $($archive.Entries.Count) entries"
+          } finally { $archive.Dispose() }
 
       - name: Upload Windows Release portable artifact
         if: matrix.build_type == 'Release'

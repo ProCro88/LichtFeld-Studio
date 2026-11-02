@@ -34,6 +34,11 @@ namespace lfs::training {
             return std::make_unique<MCMC>(model);
         };
 
+        registry_[std::string(core::param::kStrategyAbsGS)] = [](core::SplatData& model)
+            -> std::expected<std::unique_ptr<IStrategy>, std::string> {
+            return std::make_unique<MCMC>(model);
+        };
+
         registry_[std::string(core::param::kStrategyMRNF)] = [](core::SplatData& model)
             -> std::expected<std::unique_ptr<IStrategy>, std::string> {
             return std::make_unique<MRNF>(model);

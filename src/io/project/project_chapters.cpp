@@ -3638,7 +3638,6 @@ namespace lfs::io::project {
                 std::move(igs_session->references),
             .mcmc_current_references =
                 std::move(mcmc_current->references),
-            .abs_gs_current_references = std::move(abs_gs_current->references),
             .mrnf_current_references =
                 std::move(mrnf_current->references),
             .igs_current_references =

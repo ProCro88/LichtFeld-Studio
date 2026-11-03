@@ -516,21 +516,21 @@ namespace lfs::io::project {
         std::optional<std::string> cli_step_locked_strategy;
         std::string active_strategy = std::string(lfs::core::param::kStrategyMRNF);
         lfs::core::param::OptimizationParameters mcmc_session;
-        lfs::core::param::OptimizationParameters abs_gs_session;
         lfs::core::param::OptimizationParameters mrnf_session;
         lfs::core::param::OptimizationParameters igs_session;
         lfs::core::param::OptimizationParameters mcmc_current;
-        lfs::core::param::OptimizationParameters abs_gs_current;
         lfs::core::param::OptimizationParameters mrnf_current;
         lfs::core::param::OptimizationParameters igs_current;
+        lfs::core::param::OptimizationParameters abs_gs_session;
+        lfs::core::param::OptimizationParameters abs_gs_current;
         ReferenceBindings mcmc_session_references;
-        ReferenceBindings abs_gs_session_references;
         ReferenceBindings mrnf_session_references;
         ReferenceBindings igs_session_references;
         ReferenceBindings mcmc_current_references;
-        ReferenceBindings abs_gs_current_references;
         ReferenceBindings mrnf_current_references;
         ReferenceBindings igs_current_references;
+        ReferenceBindings abs_gs_session_references;
+        ReferenceBindings abs_gs_current_references;
         lfs::core::param::DatasetConfig dataset;
 
         // Calls fn(role, parameters, bindings) for every strategy role, so

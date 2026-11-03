@@ -3556,14 +3556,23 @@ namespace lfs::io::project {
                 *role_object, std::format("presets.{}.{}", strategy, role));
         };
         auto mcmc_session = parse_preset("mcmc", "session");
+        auto abs_gs_session = presets->contains("abs-gs") && presets->at("abs-gs").is_object() && presets->at("abs-gs").contains("session")
+            ? parse_preset("abs-gs", "session")
+            : lfs::Result<ParsedParameterPreset>(ParsedParameterPreset{lfs::core::param::OptimizationParameters::defaults_for_strategy(lfs::core::param::kStrategyAbsGS), {}});
         auto mrnf_session = parse_preset("mrnf", "session");
         auto igs_session = parse_preset("igs+", "session");
         auto mcmc_current = parse_preset("mcmc", "current");
+        auto abs_gs_current = presets->contains("abs-gs") && presets->at("abs-gs").is_object() && presets->at("abs-gs").contains("current")
+            ? parse_preset("abs-gs", "current")
+            : lfs::Result<ParsedParameterPreset>(ParsedParameterPreset{lfs::core::param::OptimizationParameters::defaults_for_strategy(lfs::core::param::kStrategyAbsGS), {}});
         auto mrnf_current = parse_preset("mrnf", "current");
         auto igs_current = parse_preset("igs+", "current");
         auto parsed_dataset = parse_dataset_json(*dataset);
         if (!mcmc_session) {
             return std::move(mcmc_session).error();
+        }
+        if (!abs_gs_session) {
+            return std::move(abs_gs_session).error();
         }
         if (!mrnf_session) {
             return std::move(mrnf_session).error();
@@ -3573,6 +3582,9 @@ namespace lfs::io::project {
         }
         if (!mcmc_current) {
             return std::move(mcmc_current).error();
+        }
+        if (!abs_gs_current) {
+            return std::move(abs_gs_current).error();
         }
         if (!mrnf_current) {
             return std::move(mrnf_current).error();
@@ -3585,9 +3597,11 @@ namespace lfs::io::project {
         }
         const std::array roles{
             std::pair{"mcmc", &mcmc_session->parameters},
+            std::pair{"abs-gs", &abs_gs_session->parameters},
             std::pair{"mrnf", &mrnf_session->parameters},
             std::pair{"igs+", &igs_session->parameters},
             std::pair{"mcmc", &mcmc_current->parameters},
+            std::pair{"abs-gs", &abs_gs_current->parameters},
             std::pair{"mrnf", &mrnf_current->parameters},
             std::pair{"igs+", &igs_current->parameters},
         };
@@ -3605,19 +3619,23 @@ namespace lfs::io::project {
             .cli_step_locked_strategy = std::nullopt,
             .active_strategy = *active,
             .mcmc_session = std::move(mcmc_session->parameters),
+            .abs_gs_session = std::move(abs_gs_session->parameters),
             .mrnf_session = std::move(mrnf_session->parameters),
             .igs_session = std::move(igs_session->parameters),
             .mcmc_current = std::move(mcmc_current->parameters),
+            .abs_gs_current = std::move(abs_gs_current->parameters),
             .mrnf_current = std::move(mrnf_current->parameters),
             .igs_current = std::move(igs_current->parameters),
             .mcmc_session_references =
                 std::move(mcmc_session->references),
+            .abs_gs_session_references = std::move(abs_gs_session->references),
             .mrnf_session_references =
                 std::move(mrnf_session->references),
             .igs_session_references =
                 std::move(igs_session->references),
             .mcmc_current_references =
                 std::move(mcmc_current->references),
+            .abs_gs_current_references = std::move(abs_gs_current->references),
             .mrnf_current_references =
                 std::move(mrnf_current->references),
             .igs_current_references =
@@ -3647,12 +3665,16 @@ namespace lfs::io::project {
         const std::array parameter_values{
             ParameterRole{"mcmc.session", "mcmc", &value.mcmc_session,
                           &value.mcmc_session_references},
+            ParameterRole{"abs-gs.session", "abs-gs", &value.abs_gs_session,
+                          &value.abs_gs_session_references},
             ParameterRole{"mrnf.session", "mrnf", &value.mrnf_session,
                           &value.mrnf_session_references},
             ParameterRole{"igs+.session", "igs+", &value.igs_session,
                           &value.igs_session_references},
             ParameterRole{"mcmc.current", "mcmc", &value.mcmc_current,
                           &value.mcmc_current_references},
+            ParameterRole{"abs-gs.current", "abs-gs", &value.abs_gs_current,
+                          &value.abs_gs_current_references},
             ParameterRole{"mrnf.current", "mrnf", &value.mrnf_current,
                           &value.mrnf_current_references},
             ParameterRole{"igs+.current", "igs+", &value.igs_current,
@@ -3716,6 +3738,13 @@ namespace lfs::io::project {
             return dom_.set_json(path, std::move(merged));
         };
         if (auto result =
+                merge_at("presets.abs-gs.session",
+                         parameter_json(value.abs_gs_session,
+                                        value.abs_gs_session_references));
+            !result) {
+            return result;
+        }
+        if (auto result =
                 merge_at("presets.mcmc.session",
                          parameter_json(value.mcmc_session,
                                         value.mcmc_session_references));
@@ -3733,6 +3762,13 @@ namespace lfs::io::project {
                 merge_at("presets.igs+.session",
                          parameter_json(value.igs_session,
                                         value.igs_session_references));
+            !result) {
+            return result;
+        }
+        if (auto result =
+                merge_at("presets.abs-gs.current",
+                         parameter_json(value.abs_gs_current,
+                                        value.abs_gs_current_references));
             !result) {
             return result;
         }

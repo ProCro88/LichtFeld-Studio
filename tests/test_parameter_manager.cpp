@@ -1008,4 +1008,54 @@ namespace {
         EXPECT_FLOAT_EQ(manager.getActiveParams().steps_scaler, 1.f);
     }
 
+
+    TEST(ParameterManagerTest, AbsGSParametersAreIndependentAndSurviveProjectRestore) {
+        lfs::vis::ParameterManager manager;
+        ASSERT_TRUE(manager.ensureLoaded());
+
+        lfs::core::param::TrainingParameters abs_gs;
+        abs_gs.optimization =
+            lfs::core::param::OptimizationParameters::defaults_for_strategy(
+                lfs::core::param::kStrategyAbsGS);
+        abs_gs.optimization.iterations = 111;
+        abs_gs.optimization.opacity_lr = 0.011f;
+        manager.setSessionDefaults(abs_gs);
+
+        lfs::core::param::TrainingParameters mcmc;
+        mcmc.optimization =
+            lfs::core::param::OptimizationParameters::mcmc_defaults();
+        mcmc.optimization.iterations = 222;
+        mcmc.optimization.opacity_lr = 0.022f;
+        manager.setSessionDefaults(mcmc);
+
+        EXPECT_EQ(manager.copySessionParams("abs-gs").strategy, "abs-gs");
+        EXPECT_EQ(manager.copySessionParams("abs-gs").iterations, 111u);
+        EXPECT_FLOAT_EQ(manager.copySessionParams("abs-gs").opacity_lr, 0.011f);
+        EXPECT_EQ(manager.copySessionParams("mcmc").iterations, 222u);
+        EXPECT_FLOAT_EQ(manager.copySessionParams("mcmc").opacity_lr, 0.022f);
+
+        manager.getCurrentParams("abs-gs").iterations = 333;
+        manager.getCurrentParams("abs-gs").opacity_lr = 0.033f;
+        manager.getCurrentParams("mcmc").iterations = 444;
+        manager.getCurrentParams("mcmc").opacity_lr = 0.044f;
+
+        const auto snapshot = manager.capturePendingProjectState();
+        ASSERT_TRUE(snapshot.has_value());
+
+        lfs::vis::ParameterManager restored;
+        ASSERT_TRUE(restored.ensureLoaded());
+        ASSERT_TRUE(restored.restorePendingProjectState(*snapshot));
+
+        EXPECT_EQ(restored.getCurrentParams("abs-gs").iterations, 333u);
+        EXPECT_FLOAT_EQ(restored.getCurrentParams("abs-gs").opacity_lr, 0.033f);
+        EXPECT_EQ(restored.getCurrentParams("mcmc").iterations, 444u);
+        EXPECT_FLOAT_EQ(restored.getCurrentParams("mcmc").opacity_lr, 0.044f);
+
+        restored.resetToDefaults("abs-gs");
+        EXPECT_EQ(restored.getCurrentParams("abs-gs").iterations, 111u);
+        EXPECT_FLOAT_EQ(restored.getCurrentParams("abs-gs").opacity_lr, 0.011f);
+        EXPECT_EQ(restored.getCurrentParams("mcmc").iterations, 444u);
+        EXPECT_FLOAT_EQ(restored.getCurrentParams("mcmc").opacity_lr, 0.044f);
+    }
+
 } // namespace

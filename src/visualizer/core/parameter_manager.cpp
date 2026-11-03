@@ -51,6 +51,8 @@ namespace lfs::vis {
 
         mcmc_session_ = lfs::core::param::OptimizationParameters::mcmc_defaults();
         mcmc_current_ = mcmc_session_;
+        abs_gs_session_ = lfs::core::param::OptimizationParameters::defaults_for_strategy(lfs::core::param::kStrategyAbsGS);
+        abs_gs_current_ = abs_gs_session_;
         mrnf_session_ = lfs::core::param::OptimizationParameters::mrnf_defaults();
         mrnf_current_ = mrnf_session_;
         igs_session_ = lfs::core::param::OptimizationParameters::igs_plus_defaults();
@@ -73,19 +75,23 @@ namespace lfs::vis {
             .cli_step_locked_strategy = cli_step_locked_strategy_,
             .active_strategy = active_strategy_,
             .mcmc_session = mcmc_session_,
+            .abs_gs_session = abs_gs_session_,
             .mrnf_session = mrnf_session_,
             .igs_session = igs_session_,
             .mcmc_current = mcmc_current_,
+            .abs_gs_current = abs_gs_current_,
             .mrnf_current = mrnf_current_,
             .igs_current = igs_current_,
             .mcmc_session_references =
                 mcmc_session_references_,
+            .abs_gs_session_references = abs_gs_session_references_,
             .mrnf_session_references =
                 mrnf_session_references_,
             .igs_session_references =
                 igs_session_references_,
             .mcmc_current_references =
                 mcmc_current_references_,
+            .abs_gs_current_references = abs_gs_current_references_,
             .mrnf_current_references =
                 mrnf_current_references_,
             .igs_current_references =
@@ -104,9 +110,11 @@ namespace lfs::vis {
         }
         const std::array params{
             &snapshot.mcmc_session,
+            &snapshot.abs_gs_session,
             &snapshot.mrnf_session,
             &snapshot.igs_session,
             &snapshot.mcmc_current,
+            &snapshot.abs_gs_current,
             &snapshot.mrnf_current,
             &snapshot.igs_current,
         };
@@ -122,6 +130,8 @@ namespace lfs::vis {
                 lfs::core::param::kStrategyMCMC ||
             snapshot.mcmc_current.strategy !=
                 lfs::core::param::kStrategyMCMC ||
+            snapshot.abs_gs_session.strategy != lfs::core::param::kStrategyAbsGS ||
+            snapshot.abs_gs_current.strategy != lfs::core::param::kStrategyAbsGS ||
             !lfs::core::param::is_mrnf_strategy(
                 snapshot.mrnf_session.strategy) ||
             !lfs::core::param::is_mrnf_strategy(
@@ -150,19 +160,23 @@ namespace lfs::vis {
         active_strategy_ = std::string(
             lfs::core::param::canonical_strategy_name(snapshot.active_strategy));
         mcmc_session_ = snapshot.mcmc_session;
+        abs_gs_session_ = snapshot.abs_gs_session;
         mrnf_session_ = snapshot.mrnf_session;
         igs_session_ = snapshot.igs_session;
         mcmc_current_ = snapshot.mcmc_current;
+        abs_gs_current_ = snapshot.abs_gs_current;
         mrnf_current_ = snapshot.mrnf_current;
         igs_current_ = snapshot.igs_current;
         mcmc_session_references_ =
             snapshot.mcmc_session_references;
+        abs_gs_session_references_ = snapshot.abs_gs_session_references;
         mrnf_session_references_ =
             snapshot.mrnf_session_references;
         igs_session_references_ =
             snapshot.igs_session_references;
         mcmc_current_references_ =
             snapshot.mcmc_current_references;
+        abs_gs_current_references_ = snapshot.abs_gs_current_references;
         mrnf_current_references_ =
             snapshot.mrnf_current_references;
         igs_current_references_ =
@@ -184,7 +198,11 @@ namespace lfs::vis {
     }
 
     lfs::core::param::OptimizationParameters& ParameterManager::getCurrentParams(const std::string_view strategy) {
-        if (strategy == "mcmc" || strategy == "abs-gs")
+        if (strategy == "abs-gs")
+            return abs_gs_current_;
+        if (strategy == "abs-gs")
+            return abs_gs_current_;
+        if (strategy == "mcmc")
             return mcmc_current_;
         if (lfs::core::param::is_mrnf_strategy(strategy))
             return mrnf_current_;
@@ -208,7 +226,9 @@ namespace lfs::vis {
 
         std::lock_guard lock(params_mutex_);
         const std::string_view resolved_strategy = strategy.empty() ? std::string_view(active_strategy_) : strategy;
-        if (resolved_strategy == "mcmc" || resolved_strategy == "abs-gs")
+        if (resolved_strategy == "abs-gs")
+            return abs_gs_session_;
+        if (resolved_strategy == "mcmc")
             return mcmc_session_;
         if (lfs::core::param::is_mrnf_strategy(resolved_strategy))
             return mrnf_session_;
@@ -219,7 +239,11 @@ namespace lfs::vis {
 
     void ParameterManager::resetToDefaults(const std::string_view strategy) {
         std::lock_guard lock(params_mutex_);
-        if (strategy.empty() || strategy == "mcmc" || strategy == "abs-gs") {
+        if (strategy.empty() || strategy == "abs-gs") {
+            abs_gs_current_ = abs_gs_session_;
+            abs_gs_current_references_ = abs_gs_session_references_;
+        }
+        if (strategy.empty() || strategy == "mcmc") {
             mcmc_current_ = mcmc_session_;
             mcmc_current_references_ =
                 mcmc_session_references_;
@@ -247,14 +271,18 @@ namespace lfs::vis {
         active_strategy_ = std::string(lfs::core::param::kStrategyMRNF);
         mcmc_session_ = lfs::core::param::OptimizationParameters::mcmc_defaults();
         mcmc_current_ = mcmc_session_;
+        abs_gs_session_ = lfs::core::param::OptimizationParameters::defaults_for_strategy(lfs::core::param::kStrategyAbsGS);
+        abs_gs_current_ = abs_gs_session_;
         mrnf_session_ = lfs::core::param::OptimizationParameters::mrnf_defaults();
         mrnf_current_ = mrnf_session_;
         igs_session_ = lfs::core::param::OptimizationParameters::igs_plus_defaults();
         igs_current_ = igs_session_;
         mcmc_session_references_ = {};
+        abs_gs_session_references_ = {};
         mrnf_session_references_ = {};
         igs_session_references_ = {};
         mcmc_current_references_ = {};
+        abs_gs_current_references_ = {};
         mrnf_current_references_ = {};
         igs_current_references_ = {};
         dataset_config_ = lfs::core::param::DatasetConfig{};
@@ -285,7 +313,12 @@ namespace lfs::vis {
             &mrnf_session_references_;
         auto* current_references =
             &mrnf_current_references_;
-        if (active_strategy_ == "mcmc" || active_strategy_ == "abs-gs") {
+        if (active_strategy_ == "abs-gs") {
+            session = &abs_gs_session_;
+            current = &abs_gs_current_;
+            session_references = &abs_gs_session_references_;
+            current_references = &abs_gs_current_references_;
+        } else if (active_strategy_ == "mcmc") {
             session = &mcmc_session_;
             current = &mcmc_current_;
             session_references =
@@ -334,7 +367,12 @@ namespace lfs::vis {
         if (!params.strategy.empty()) {
             setActiveStrategy(params.strategy);
         }
-        if (active_strategy_ == "mcmc") {
+        if (active_strategy_ == "abs-gs") {
+            abs_gs_session_ = params;
+            abs_gs_current_ = params;
+            abs_gs_session_references_ = {};
+            abs_gs_current_references_ = {};
+        } else if (active_strategy_ == "mcmc") {
             mcmc_session_ = params;
             mcmc_current_ = params;
             mcmc_session_references_ = {};
@@ -384,7 +422,12 @@ namespace lfs::vis {
             setActiveStrategy(params.optimization.strategy);
         }
 
-        if (active_strategy_ == "mcmc") {
+        if (active_strategy_ == "abs-gs") {
+            abs_gs_session_ = params.optimization;
+            abs_gs_current_ = params.optimization;
+            abs_gs_session_references_ = {};
+            abs_gs_current_references_ = {};
+        } else if (active_strategy_ == "mcmc") {
             mcmc_session_ = params.optimization;
             mcmc_current_ = params.optimization;
             mcmc_session_references_ = {};
@@ -436,7 +479,7 @@ namespace lfs::vis {
 
         std::lock_guard lock(params_mutex_);
         bool changed = false;
-        for (auto* params : {&mcmc_current_, &mrnf_current_, &igs_current_}) {
+        for (auto* params : {&mcmc_current_, &abs_gs_current_, &mrnf_current_, &igs_current_}) {
             if (cli_step_locked_strategy_ &&
                 lfs::core::param::canonical_strategy_name(params->strategy) == *cli_step_locked_strategy_) {
                 LOG_INFO("Auto-scale skipped for {}: step values set on the command line", *cli_step_locked_strategy_);

@@ -200,8 +200,6 @@ namespace lfs::vis {
     lfs::core::param::OptimizationParameters& ParameterManager::getCurrentParams(const std::string_view strategy) {
         if (strategy == "abs-gs")
             return abs_gs_current_;
-        if (strategy == "abs-gs")
-            return abs_gs_current_;
         if (strategy == "mcmc")
             return mcmc_current_;
         if (lfs::core::param::is_mrnf_strategy(strategy))
@@ -212,6 +210,8 @@ namespace lfs::vis {
     }
 
     const lfs::core::param::OptimizationParameters& ParameterManager::getCurrentParams(const std::string_view strategy) const {
+        if (strategy == "abs-gs")
+            return abs_gs_current_;
         if (strategy == "mcmc")
             return mcmc_current_;
         if (lfs::core::param::is_mrnf_strategy(strategy))

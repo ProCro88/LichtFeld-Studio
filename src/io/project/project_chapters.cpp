@@ -3623,16 +3623,15 @@ namespace lfs::io::project {
             .cli_step_locked_strategy = std::nullopt,
             .active_strategy = *active,
             .mcmc_session = std::move(mcmc_session->parameters),
-            .abs_gs_session = std::move(abs_gs_session->parameters),
             .mrnf_session = std::move(mrnf_session->parameters),
             .igs_session = std::move(igs_session->parameters),
             .mcmc_current = std::move(mcmc_current->parameters),
-            .abs_gs_current = std::move(abs_gs_current->parameters),
             .mrnf_current = std::move(mrnf_current->parameters),
             .igs_current = std::move(igs_current->parameters),
+            .abs_gs_session = std::move(abs_gs_session->parameters),
+            .abs_gs_current = std::move(abs_gs_current->parameters),
             .mcmc_session_references =
                 std::move(mcmc_session->references),
-            .abs_gs_session_references = std::move(abs_gs_session->references),
             .mrnf_session_references =
                 std::move(mrnf_session->references),
             .igs_session_references =
@@ -3644,6 +3643,8 @@ namespace lfs::io::project {
                 std::move(mrnf_current->references),
             .igs_current_references =
                 std::move(igs_current->references),
+            .abs_gs_session_references = std::move(abs_gs_session->references),
+            .abs_gs_current_references = std::move(abs_gs_current->references),
             .dataset = std::move(*parsed_dataset),
         };
         return *cached_snapshot_;

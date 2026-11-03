@@ -75,16 +75,15 @@ namespace lfs::vis {
             .cli_step_locked_strategy = cli_step_locked_strategy_,
             .active_strategy = active_strategy_,
             .mcmc_session = mcmc_session_,
-            .abs_gs_session = abs_gs_session_,
             .mrnf_session = mrnf_session_,
             .igs_session = igs_session_,
             .mcmc_current = mcmc_current_,
-            .abs_gs_current = abs_gs_current_,
             .mrnf_current = mrnf_current_,
             .igs_current = igs_current_,
+            .abs_gs_session = abs_gs_session_,
+            .abs_gs_current = abs_gs_current_,
             .mcmc_session_references =
                 mcmc_session_references_,
-            .abs_gs_session_references = abs_gs_session_references_,
             .mrnf_session_references =
                 mrnf_session_references_,
             .igs_session_references =
@@ -96,6 +95,8 @@ namespace lfs::vis {
                 mrnf_current_references_,
             .igs_current_references =
                 igs_current_references_,
+            .abs_gs_session_references = abs_gs_session_references_,
+            .abs_gs_current_references = abs_gs_current_references_,
             .dataset = dataset_config_,
         };
     }

@@ -521,8 +521,12 @@ namespace lfs::io::project {
         lfs::core::param::OptimizationParameters mcmc_current;
         lfs::core::param::OptimizationParameters mrnf_current;
         lfs::core::param::OptimizationParameters igs_current;
-        lfs::core::param::OptimizationParameters abs_gs_session;
-        lfs::core::param::OptimizationParameters abs_gs_current;
+        lfs::core::param::OptimizationParameters abs_gs_session =
+            lfs::core::param::OptimizationParameters::defaults_for_strategy(
+                lfs::core::param::kStrategyAbsGS);
+        lfs::core::param::OptimizationParameters abs_gs_current =
+            lfs::core::param::OptimizationParameters::defaults_for_strategy(
+                lfs::core::param::kStrategyAbsGS);
         ReferenceBindings mcmc_session_references;
         ReferenceBindings mrnf_session_references;
         ReferenceBindings igs_session_references;

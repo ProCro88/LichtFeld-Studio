@@ -90,7 +90,6 @@ namespace lfs::vis {
                 igs_session_references_,
             .mcmc_current_references =
                 mcmc_current_references_,
-            .abs_gs_current_references = abs_gs_current_references_,
             .mrnf_current_references =
                 mrnf_current_references_,
             .igs_current_references =

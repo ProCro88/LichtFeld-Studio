@@ -516,15 +516,19 @@ namespace lfs::io::project {
         std::optional<std::string> cli_step_locked_strategy;
         std::string active_strategy = std::string(lfs::core::param::kStrategyMRNF);
         lfs::core::param::OptimizationParameters mcmc_session;
+        lfs::core::param::OptimizationParameters abs_gs_session;
         lfs::core::param::OptimizationParameters mrnf_session;
         lfs::core::param::OptimizationParameters igs_session;
         lfs::core::param::OptimizationParameters mcmc_current;
+        lfs::core::param::OptimizationParameters abs_gs_current;
         lfs::core::param::OptimizationParameters mrnf_current;
         lfs::core::param::OptimizationParameters igs_current;
         ReferenceBindings mcmc_session_references;
+        ReferenceBindings abs_gs_session_references;
         ReferenceBindings mrnf_session_references;
         ReferenceBindings igs_session_references;
         ReferenceBindings mcmc_current_references;
+        ReferenceBindings abs_gs_current_references;
         ReferenceBindings mrnf_current_references;
         ReferenceBindings igs_current_references;
         lfs::core::param::DatasetConfig dataset;
@@ -534,9 +538,11 @@ namespace lfs::io::project {
         template <typename Fn>
         void for_each_role(Fn&& fn) {
             fn(std::string_view{"mcmc.session"}, mcmc_session, mcmc_session_references);
+            fn(std::string_view{"abs-gs.session"}, abs_gs_session, abs_gs_session_references);
             fn(std::string_view{"mrnf.session"}, mrnf_session, mrnf_session_references);
             fn(std::string_view{"igs+.session"}, igs_session, igs_session_references);
             fn(std::string_view{"mcmc.current"}, mcmc_current, mcmc_current_references);
+            fn(std::string_view{"abs-gs.current"}, abs_gs_current, abs_gs_current_references);
             fn(std::string_view{"mrnf.current"}, mrnf_current, mrnf_current_references);
             fn(std::string_view{"igs+.current"}, igs_current, igs_current_references);
         }
@@ -548,6 +554,8 @@ namespace lfs::io::project {
                 lfs::core::param::canonical_strategy_name(active_strategy);
             if (strategy == lfs::core::param::kStrategyMCMC)
                 return mcmc_current;
+            if (strategy == lfs::core::param::kStrategyAbsGS)
+                return abs_gs_current;
             if (strategy == lfs::core::param::kStrategyIGSPlus)
                 return igs_current;
             return mrnf_current;

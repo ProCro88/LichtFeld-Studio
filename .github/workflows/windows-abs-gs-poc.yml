@@ -7,6 +7,7 @@ on:
     paths:
       - '.github/workflows/windows-abs-gs-poc.yml'
       - 'src/**'
+      - 'tests/**'
       - 'cmake/**'
       - 'CMakeLists.txt'
       - 'vcpkg.json'
@@ -86,7 +87,7 @@ jobs:
           $vcvars = Join-Path $vs 'VC\\Auxiliary\\Build\\vcvars64.bat'
           if (-not (Test-Path $vcvars)) { throw "vcvars64.bat not found: $vcvars" }
           "Starting CMake configure at $(Get-Date -Format o)" | Tee-Object -FilePath $log
-          cmd.exe /d /s /c "`"$vcvars`" && cmake -B $env:BUILD_DIR -S . -G Ninja -DCMAKE_BUILD_TYPE=Release -DLFS_FAST_COMPILE=ON -DBUILD_PORTABLE=ON -DBUILD_TESTS=OFF -DBUILD_FORMAT_TESTS=OFF -DBUILD_VISUALIZER_TESTS=OFF -DBUILD_UNICODE_TEST_ONLY=OFF -DBUILD_PYTHON_STUBS=OFF -DLFS_DEV_IMPORT_SOURCE_PYTHON=OFF -DLFS_DEV_IMPORT_SOURCE_RESOURCES=OFF -DLFS_ENABLE_CUDA_DEVICE_DEBUG=OFF -DENABLE_COMPILER_CACHE=OFF" 2>&1 | Tee-Object -FilePath $log -Append
+          cmd.exe /d /s /c "`"$vcvars`" && cmake -B $env:BUILD_DIR -S . -G Ninja -DCMAKE_BUILD_TYPE=Release -DLFS_FAST_COMPILE=ON -DBUILD_PORTABLE=ON -DBUILD_TESTS=ON -DBUILD_FORMAT_TESTS=OFF -DBUILD_VISUALIZER_TESTS=OFF -DBUILD_UNICODE_TEST_ONLY=OFF -DBUILD_PYTHON_STUBS=OFF -DLFS_DEV_IMPORT_SOURCE_PYTHON=OFF -DLFS_DEV_IMPORT_SOURCE_RESOURCES=OFF -DLFS_ENABLE_CUDA_DEVICE_DEBUG=OFF -DENABLE_COMPILER_CACHE=OFF" 2>&1 | Tee-Object -FilePath $log -Append
           $code = $LASTEXITCODE
           "CMake configure exit code: $code at $(Get-Date -Format o)" | Tee-Object -FilePath $log -Append
           if ($code -ne 0) { exit $code }
@@ -106,6 +107,14 @@ jobs:
           call "C:\\Program Files\\Microsoft Visual Studio\\2022\\Enterprise\\VC\\Auxiliary\\Build\\vcvars64.bat"
           cmake --build %BUILD_DIR% -j 4
           if errorlevel 1 exit /b 1
+
+      - name: Run focused AbsGS parameter isolation test
+        shell: pwsh
+        run: |
+          $testExe = Get-ChildItem -Path $env:BUILD_DIR -Filter 'lichtfeld_tests.exe' -Recurse | Select-Object -First 1
+          if (-not $testExe) { throw 'lichtfeld_tests.exe was not produced' }
+          & $testExe.FullName '--gtest_filter=ParameterManagerTest.AbsGSParametersAreIndependentAndSurviveProjectRestore'
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Install portable distribution
         shell: cmd

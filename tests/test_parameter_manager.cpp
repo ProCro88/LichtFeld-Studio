@@ -1058,4 +1058,39 @@ namespace {
         EXPECT_FLOAT_EQ(restored.getCurrentParams("mcmc").opacity_lr, 0.044f);
     }
 
+
+    TEST(ParameterManagerTest, AllDirectedStrategySwitchesKeepTheirOwnParameterSlots) {
+        lfs::vis::ParameterManager manager;
+        ASSERT_TRUE(manager.ensureLoaded());
+
+        const std::array<std::string_view, 4> strategies{
+            "mcmc", "abs-gs", "mrnf", "igs+"};
+        const std::array<std::uint32_t, 4> sentinels{101, 202, 303, 404};
+
+        for (size_t i = 0; i < strategies.size(); ++i) {
+            auto& params = manager.getCurrentParams(strategies[i]);
+            params.iterations = sentinels[i];
+        }
+
+        size_t transitions = 0;
+        for (const auto from : strategies) {
+            manager.setActiveStrategy(from);
+            ASSERT_EQ(manager.getActiveStrategy(), from);
+            for (const auto to : strategies) {
+                if (from == to)
+                    continue;
+                manager.setActiveStrategy(to);
+                EXPECT_EQ(manager.getActiveStrategy(), to);
+                EXPECT_EQ(manager.getActiveParams().strategy, to);
+                ++transitions;
+            }
+        }
+
+        EXPECT_EQ(transitions, 12u);
+        for (size_t i = 0; i < strategies.size(); ++i) {
+            EXPECT_EQ(manager.getCurrentParams(strategies[i]).iterations,
+                      sentinels[i]) << "strategy slot " << strategies[i];
+        }
+    }
+
 } // namespace

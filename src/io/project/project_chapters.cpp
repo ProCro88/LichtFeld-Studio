@@ -3457,7 +3457,8 @@ namespace lfs::io::project {
         bool valid_pending_strategy(const std::string_view value) {
             return value == lfs::core::param::kStrategyMCMC ||
                    lfs::core::param::is_mrnf_strategy(value) ||
-                   value == lfs::core::param::kStrategyIGSPlus;
+                   value == lfs::core::param::kStrategyIGSPlus ||
+                   value == lfs::core::param::kStrategyAbsGS;
         }
 
         bool matches_parameter_role(
@@ -3465,6 +3466,9 @@ namespace lfs::io::project {
             const std::string_view role) {
             if (role == "mcmc") {
                 return value.strategy == lfs::core::param::kStrategyMCMC;
+            }
+            if (role == "abs-gs") {
+                return value.strategy == lfs::core::param::kStrategyAbsGS;
             }
             if (role == "mrnf") {
                 return lfs::core::param::is_mrnf_strategy(value.strategy);

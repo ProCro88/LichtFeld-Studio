@@ -112,11 +112,13 @@ namespace lfs::vis {
 
         // Session defaults
         lfs::core::param::OptimizationParameters mcmc_session_;
+        lfs::core::param::OptimizationParameters abs_gs_session_;
         lfs::core::param::OptimizationParameters mrnf_session_;
         lfs::core::param::OptimizationParameters igs_session_;
 
         // Current params (user-editable)
         lfs::core::param::OptimizationParameters mcmc_current_;
+        lfs::core::param::OptimizationParameters abs_gs_current_;
         lfs::core::param::OptimizationParameters mrnf_current_;
         lfs::core::param::OptimizationParameters igs_current_;
 
@@ -126,12 +128,14 @@ namespace lfs::vis {
         // sessions without consulting serialized PRMS.
         lfs::io::project::ParameterManagerSnapshot::
             ReferenceBindings mcmc_session_references_;
+            ReferenceBindings abs_gs_session_references_;
         lfs::io::project::ParameterManagerSnapshot::
             ReferenceBindings mrnf_session_references_;
         lfs::io::project::ParameterManagerSnapshot::
             ReferenceBindings igs_session_references_;
         lfs::io::project::ParameterManagerSnapshot::
             ReferenceBindings mcmc_current_references_;
+            ReferenceBindings abs_gs_current_references_;
         lfs::io::project::ParameterManagerSnapshot::
             ReferenceBindings mrnf_current_references_;
         lfs::io::project::ParameterManagerSnapshot::
